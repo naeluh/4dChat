@@ -1,0 +1,83 @@
+var express = require('express')
+  , app = express()
+  , http = require('http')
+  , session = require('cookie-session')
+  , cookieParser = require('cookie-parser')
+  , cookieSession = require('cookie-session')
+  , bodyParser = require('body-parser')
+  , server = http.createServer(app)
+  , io = require('socket.io').listen(server);
+
+server.listen(8095);
+
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
+app.use(bodyParser.json());
+
+app.use(cookieParser());
+
+app.use(cookieSession({secret: "b4r3"}));
+
+app.use(express.static(__dirname + '/static'));
+
+app.get('/', function(req, res) {
+  res.render('index.ejs', { email: req.session.email || null });
+});
+
+
+var usernames = {};
+
+var rooms = {};
+
+app.get('/:room', function (req, res, next) {
+    if (rooms[req.params.room]){
+        console.log('Sent');
+        res.render('room.ejs', { email: req.session.email || null });
+    } else {
+       console.log('Redirected');
+       res.redirect('/'); 
+    }
+});
+
+io.sockets.on('connection', function (socket) {
+    
+  socket.on('adduser', function(username){
+    socket.username = username;
+    usernames[username] = username;
+  });
+
+  socket.on('addroom', function(room){
+    socket.join(room);
+    socket.emit('updatechat', 'SERVER', 'you have connected to '+ room);
+    socket.rooms = room;
+    rooms[room] = room;
+    socket.broadcast.to(room).emit('updatechat', 'SERVER', socket.username+' has joined this room');
+    socket.emit('updaterooms', rooms, room);
+  });
+
+  socket.on('sendchat', function (data) {
+    io.sockets.in(socket.room).emit('updatechat', socket.username, data);
+  });
+
+  socket.on('switchRoom', function(newroom){
+    socket.leave(socket.room);
+    socket.join(newroom);
+    socket.emit('updatechat', 'SERVER', 'you have connected to '+ newroom);
+    socket.broadcast.to(socket.room).emit('updatechat', 'SERVER', socket.username+' has left this room');
+    socket.room = newroom;
+    rooms[newroom] = newroom;
+    socket.broadcast.to(newroom).emit('updatechat', 'SERVER', socket.username+' has joined this room');
+    socket.emit('updaterooms', rooms, newroom);
+  });
+
+  socket.on('disconnect', function(){
+    delete usernames[socket.username];
+    io.sockets.emit('updateusers', usernames);
+    socket.broadcast.emit('updatechat', 'SERVER', socket.username + ' has disconnected');
+    socket.leave(socket.room);
+  });
+  
+  
+});

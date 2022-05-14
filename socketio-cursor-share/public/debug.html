@@ -1,0 +1,46 @@
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	</head>
+	<body>
+		<div>Debugger</div>
+		
+		<script src="/socket.io/socket.io.js"></script>
+		
+		<script>
+			
+		var ip = '';
+		socket = io.connect('http://' + ip + '/debug');
+		
+		
+		var trigger = true;
+		if (window.DeviceMotionEvent != undefined) {
+				window.ondevicemotion = function(a) {
+					//if(trigger){
+						socket.emit('stuff', a.accelerationIncludingGravity);
+						/*
+						for(i in a){
+							var container = document.createElement('p');
+							container.innerHTML = i +' : '+ a[i];
+							document.body.appendChild(container);
+						}
+						*/
+					//}
+					trigger = false;
+				}
+		} else {
+			socket.on('stuff', function(data) {
+				var container = document.createElement('p');
+				container.innerHTML = data;
+				document.body.appendChild(container);
+			});
+		}
+		</script>
+	</body>
+</html>

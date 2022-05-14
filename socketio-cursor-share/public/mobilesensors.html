@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		
+		<style>
+			body {
+				font-family:arial;
+				font-size:40px;
+				text-align:center;
+				background-color:#eee;
+				height:100%;
+				color:#000;
+				margin:0;
+				padding:10px;
+			}
+
+			#wrapper {
+				width:100%;
+				height:100%;
+			}
+
+			
+		</style>
+		
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			
+			//Hacky section to add this to cube control
+			var ip = '';
+			socket = io.connect('http://' + ip + '/cubecontrol');
+		
+		function pad(str, len, pad) {
+			str = String(str);
+			if (typeof(len) == "undefined") { var len = 0; }
+			if (typeof(pad) == "undefined") { var pad = '0'; }
+			if (len + 1 >= str.length) str = Array(len + 1 - str.length).join(pad) + str;
+			return str;
+		}
+
+		// Rolls
+		var ax = 0;
+		var ay = 0;
+		var az = 0;
+		var rot = 0;
+
+		var nax = 0;
+		var nay = 0;
+		var naz = 0;
+		var nrot = 0;
+
+		var delay = 10;
+		
+		var gravX = 0;
+		var gravY = 0;
+		var gravZ = 0;
+		
+		var alpha = 0.8;
+		
+
+		if (window.DeviceMotionEvent != undefined) {
+
+			window.ondevicemotion = function(event) {
+				gravX = gravX * alpha + event.accelerationIncludingGravity.x * (1 - alpha);
+				gravY = gravY * alpha + event.accelerationIncludingGravity.y * (1 - alpha);
+				gravZ = gravZ * alpha + event.accelerationIncludingGravity.z * (1 - alpha);
+				
+				ax = Math.floor(Math.abs(event.accelerationIncludingGravity.x)/10*255);
+				ay = Math.floor(Math.abs(event.accelerationIncludingGravity.y)/10*255);
+				az = Math.floor(Math.abs(event.accelerationIncludingGravity.z)/10*255);
+
+				rot = -event.accelerationIncludingGravity.x*10;
+			}
+
+			setInterval(function() {
+
+				nax = nax + (ax - nax)/15;
+				nay = nay + (ay - nay)/15;
+				naz = naz + (az - naz)/15;
+				nrot = nrot + (rot - nrot)/20;
+
+				//Little hacky section to pipe stuff off to socket.io
+				
+
+				var r = Math.floor(nax);
+				var g = Math.floor(nay);
+				var b = Math.floor(naz);
+				
+				socket.emit('coord-change', {x:gravX, y:gravY, z:gravZ});
+
+				var out = document.getElementById("accel");
+				out.innerHTML = "x : "+pad(r,3)+"<br>y : "+pad(g,3)+"<br>z : "+pad(b,3);
+				
+				
+
+				out.style.webkitTransform = "rotate(" + nrot + "deg)";
+
+
+
+				var scr = document.getElementById("dashboard");
+				scr.style.backgroundColor = 'rgba('+r+','+g+','+b+',1)';
+
+			}, delay);
+
+		} 
+
+			
+		</script>
+		
+	</head>
+	<body id="dashboard">
+		
+		<div id="wrapper">
+			<div id="accel">
+			</div>
+		</div>
+	</body>
+</html>

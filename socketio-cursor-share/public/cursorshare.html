@@ -1,0 +1,129 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		
+		<style>
+			body {
+				height: 100%;
+				width: 100%;
+				background-color: rgba(0,0,0,0.2);
+				font-family:arial;
+				padding:10px;
+			}
+			span {
+				position: absolute;
+				display: block;
+				width: 50px;
+				height: 50px;
+			}
+
+			
+			
+		</style>
+		
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+		
+			var myid = Math.floor(Math.random() * 300);
+			var socket;
+			var spans = {};
+			
+			var sendposition = function(e){
+				update({x:e.pageX, y:e.pageY, id:myid});
+				socket.emit('cursor-update', {x:e.pageX, y:e.pageY, id:myid});
+			}
+			
+			var mouselistener = function (event) {
+				sendposition(event);
+			}
+			
+			var iostouchlistener = function (event) {
+				event.preventDefault(); //Stop the screen getting 'dragged'
+				sendposition(event);
+			}
+			
+			var update = function(data) {
+				
+				var span;
+				
+				if(!(data.id in spans)) {
+					span = spans[data.id] = document.createElement('span');
+					span.style.backgroundColor = 'rgb(' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ','  + Math.floor(Math.random() * 255) +  ')';
+					playarea.appendChild(span);
+				} else {
+					span = spans[data.id];
+				}
+			   
+				//Offset ones own pointer so we can still click stuff
+				if(data.id = myid) {
+					data.y += 2;
+					data.x += 2;
+				}
+
+				span.style.top = data.y + 'px';
+				span.style.left = data.x + 'px';
+
+
+				span.textContent = data.x + ', ' + data.y;
+			}
+		
+			function getThisPartyStarted() {
+				
+				//Replace this stuff with a gethostname lookup
+				var ip = document.getElementById('nodeip').value;
+				socket = io.connect('http://' + ip + '/cursorshare');
+
+				socket.on('connect',function(){
+					document.getElementById('status').innerHTML = 'connected';
+					document.getElementById('suby').value = 'disconnect';
+					document.getElementById('myform').onsubmit = endParty;
+					
+					document.addEventListener("mousemove", mouselistener, false);
+					document.addEventListener("touchmove", iostouchlistener, false);
+					
+				});
+				
+				socket.on('disconnect', function(){
+					document.getElementById('status').innerHTML = 'disconnected';
+					document.getElementById('suby').value = 'connect';
+					
+					document.removeEventListener("mousemove", mouselistener, false);
+					document.removeEventListener("touchmove", iostouchlistener, false);
+					//This is borken currently
+					document.getElementById('myform').onsubmit = getThisPartyStarted;
+					
+				});
+			   
+				socket.on('cursor-position-update', function (data) {
+					update(data);
+				});
+				return false
+			}
+			
+			//This is not really working for me..
+			endParty = function() {
+				socket.disconnect();
+				return false;
+			}
+		</script>
+		
+	</head>
+	<body>
+		
+		
+		<div id="box">
+			<form id="myform" onsubmit="getThisPartyStarted(); return false">
+			<label for="nodeip">Server IP: </label><input type="text" id="nodeip">
+			<input type="submit" id="suby" value="connect">
+			</form>
+			<br />
+			<div>STATUS: <span id="status">not connected</span></div>
+		</div>
+		<div id="playarea">
+			
+		</div>
+	</body>
+</html>
