@@ -7,14 +7,21 @@
   <body>
     <div id="container">
       <div id="info">
-        <form
-          id="uploadForm"
-          enctype="multipart/form-data"
-          action="/api"
-          method="post"
-        >
-          <input type="file" name="userPhoto" />
-          <input type="submit" value="Upload Model" name="submit" />
+        <form id="uploadForm">
+          <input
+            type="file"
+            name="userFile"
+            id="userFile"
+            aria-label="pick 3d model"
+          />
+          <button class="submit-btn" type="submit">Upload</button>
+          <!-- <input
+            type="submit"
+            value="Upload Model"
+            name="submit"
+            name="submitButton"
+            aria-label="upload 3d model"
+          /> -->
         </form>
       </div>
       <aside>
@@ -26,8 +33,13 @@
         <div id="convoBox">
           <div id="conversation"></div>
           <div id="inputBox">
-            <input id="data" />
-            <input type="button" id="datasend" value="send" />
+            <input type="text" id="data" aria-label="chat text input" />
+            <input
+              type="button"
+              id="datasend"
+              value="send"
+              aria-label="submit chat"
+            />
           </div>
         </div>
       </aside>
@@ -51,14 +63,14 @@
     <script src="/socket.io/socket.io.js"></script>
 
     <script type="text/javascript">
-      var userName = null;
-      var userRoom = null;
-      var color = null;
-      var userDone = false;
-
-      var port = 8000,
-        protocol = 'ws://',
-        isSecure = false;
+      let userName = null;
+      let userRoom = null;
+      let url = null;
+      let color = null;
+      let userDone = false;
+      let port = 8000;
+      let protocol = 'ws://';
+      let isSecure = false;
 
       if (location.protocol === 'https:') {
         port = 8443;
@@ -66,62 +78,36 @@
         isSecure = true;
       }
 
-      var socket = io();
+      const socket = io();
 
-      $('#uploadForm').submit(function () {
-        $(this).ajaxSubmit({
-          error: function (xhr) {
-            status('Error: ' + xhr.status);
-          },
-          success: function (response) {
-            addDae('./files/' + response);
-            socket.emit('updateFile', response, userRoom);
-          }
-        });
-        return false;
-      });
+      const form = document.getElementById('uploadForm');
 
-      /*
-  //$('body').mousemove(function(event){
-    //var pos = {
-      //x: event.pageX,
-      //y: event.pageY
-    //};
-    //socket.emit('update_coords', pos);
-  //});
+      form.addEventListener('submit', submitForm);
 
-  document.addEventListener('mousemove',function(e){
-    var pos = {
-      x: e.pageX,
-      y: e.pageY
-    };
-   socket.emit('update_coords', pos);
-  });
-  socket.on('send_data', function(m , n ,clr){
-    var i=0;
-    $('#zone').html('');
-    //while(i < m.length){
-    console.log('x: '+m.x);
-    console.log('y: '+m.y);
-    console.log('n: '+n);
-    console.log('userName: '+userName);
-    console.log('clr: '+clr);
-      var me = '';
-      if( n = userName ) me = '';
-      player = '<div class="player" id="p_' + n + '" style="background: ' + clr + '  ;left:' + m.x + 'px;top:' + m.y +'px"> ' + me + '</div>';
-      $('#zone').append(player);
-      i++;
-    //}
-  });
-*/
+      async function submitForm(e) {
+        e.preventDefault();
+        const files = document.getElementById('userFile');
+        const formData = new FormData();
+        formData.append('name', '');
+        for (let i = 0; i < files.files.length; i++) {
+          formData.append('files', files.files[i]);
+        }
 
-      window.onload = function () {
-        //var v = prompt('value');
-        //console.log(v)
-      };
+        try {
+          const res = await fetch('/api', {
+            method: 'POST',
+            body: formData,
+          });
+          const json = await res.json();
+          addDae(json.file[0].filename);
+          socket.emit('updateFile', json.file[0].filename, userRoom);
+        } catch (error) {
+          console.error('Huston we have problem...:', error);
+        }
+      }
 
       socket.on('connect', function () {
-        var url = window.location.pathname.substr(1);
+        const url = window.location.pathname.substr(1);
         userName = prompt("What's your name?");
         userRoom = prompt('What is the name of your room?');
         color = '#' + Math.random().toString(16).slice(2, 8);
@@ -189,7 +175,7 @@
       });
 
       socket.on('addFile', function (userSent, roomName, newFile) {
-        addDae('./files/' + newFile);
+        addDae(newFile);
       });
 
       if (!Detector.webgl) Detector.addGetWebGLMessage();
@@ -217,7 +203,7 @@
         envPath + 'py' + envFormat,
         envPath + 'ny' + envFormat,
         envPath + 'pz' + envFormat,
-        envPath + 'nz' + envFormat
+        envPath + 'nz' + envFormat,
       ];
 
       var textureCube = THREE.ImageUtils.loadTextureCube(envUrls);
@@ -241,7 +227,7 @@
               reflectivity: 0.5,
               envMap: textureCube,
               combine: THREE.MultiplyOperation,
-              side: THREE.DoubleSide
+              side: THREE.DoubleSide,
             })
           );
           scene.add(dae);
@@ -276,7 +262,7 @@
           step = 1;
         var geometry = new THREE.Geometry();
         var gridMat = new THREE.LineBasicMaterial({
-          color: 0xb1b1e5
+          color: 0xb1b1e5,
         });
         for (var i = -size; i <= size; i += step) {
           geometry.vertices.push(new THREE.Vector3(-size, -0.04, i));
@@ -290,7 +276,7 @@
           step = 0.1;
         var geometry2 = new THREE.Geometry();
         var grid2Mat = new THREE.LineBasicMaterial({
-          color: 0x7d7da7
+          color: 0x7d7da7,
         });
         for (var i = -size; i <= size; i += step) {
           geometry2.vertices.push(new THREE.Vector3(-size, -0.04, i));
@@ -307,14 +293,14 @@
           fragmentShader: shader.fragmentShader,
           vertexShader: shader.vertexShader,
           uniforms: shader.uniforms,
-          side: THREE.BackSide
+          side: THREE.BackSide,
         });
         light1 = new THREE.PointLight({
-          color: 0xffffff
+          color: 0xffffff,
         });
         scene.add(light1);
         light2 = new THREE.PointLight({
-          color: 0xffffff
+          color: 0xffffff,
         });
         scene.add(light2);
         hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1);
@@ -323,7 +309,7 @@
         hemiLight.position.set(0, 1, 0);
         scene.add(hemiLight);
         renderer = new THREE.WebGLRenderer({
-          antialias: true
+          antialias: true,
         });
         renderer.setClearColor(0x6a6a8d, 1);
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -404,7 +390,7 @@
           u: userName,
           x: x,
           y: y,
-          z: z
+          z: z,
         };
         socket.emit('draw', dataControls);
         socket.emit('session', sessionId);

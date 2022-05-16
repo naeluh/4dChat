@@ -1,11 +1,21 @@
 const express = require('express');
 const app = express();
 const multer = require('multer');
+const multerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'static');
+  },
+  filename: (req, file, cb) => {
+    const ext = file.mimetype.split('/')[1];
+    cb(null, `files/4dchat-${file.fieldname}-${Date.now()}.dae`);
+  },
+});
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const port = process.env.PORT || 6969;
+const upload = multer({ storage: multerStorage });
 
 http.listen(port, () => {
   console.log(`Socket.IO server running at http://localhost:${port}/`);
@@ -62,33 +72,18 @@ app.get('/file/:room', (req, res, next) => {
   }
 });
 
-app.post(
-  '/api',
-  () =>
-    multer({
-      dest: './static/files/',
-      rename: (fieldname, filename) => {
-        return filename + Date.now();
-      },
-      onFileUploadStart: file => {
-        console.log(file.originalname + ' is starting ...');
-      },
-      onFileUploadComplete: file => {
-        console.log(file.fieldname + ' uploaded to  ' + file.path);
-        imgName = file.name;
-      },
-      onError: (err, next) => {
-        console.log(err);
-        next(err);
-      },
-    }),
-  (req, res) => {
-    console.log(req.files || {});
-    console.log('Image Path ' + imgName || {});
-    res.send(imgName);
-    return res.send(200);
-  }
-);
+app.post('/api', upload.array('files'), (req, res, next) => {
+  res.json({ file: req.files });
+});
+
+function uploadFiles(req, res) {
+  console.log(req.body);
+  console.log(req.files);
+  console.log(req.files || {});
+  console.log('Image Path ' + imgName || {});
+  res.send(imgName);
+  return res.send(200);
+}
 
 io.on('connection', socket => {
   socket.on('adduser', (username, color, room) => {
@@ -214,7 +209,7 @@ io.on('connection', socket => {
     console.log(userRoom || {});
     console.log(roomFileArr || {});
     io.in(socket.room).emit('addFile', socket.username, userRoom, newFile);
-    roomFileArr[userRoom] = imgName;
+    roomFileArr[userRoom] = newFile;
     console.log(roomFileArr || {});
   });
 

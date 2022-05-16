@@ -50,12 +50,7 @@
 
       var socket = io.connect();
 
-      $.get('/file' + window.location.pathname, function (d) {
-        console.log(d);
-        if (d) {
-          addDae('./files/' + d);
-        }
-      });
+      $.get('/file' + window.location.pathname, d => d && addDae(d));
 
       socket.on('connect', function () {
         userName = prompt("What's your name?");
@@ -116,7 +111,7 @@
       });
 
       socket.on('addFile', function (userSent, roomName, newFile) {
-        addDae('./files/' + newFile);
+        addDae(newFile);
       });
 
       if (!Detector.webgl) Detector.addGetWebGLMessage();
@@ -144,7 +139,7 @@
         envPath + 'py' + envFormat,
         envPath + 'ny' + envFormat,
         envPath + 'pz' + envFormat,
-        envPath + 'nz' + envFormat
+        envPath + 'nz' + envFormat,
       ];
 
       var textureCube = THREE.ImageUtils.loadTextureCube(envUrls);
@@ -168,7 +163,7 @@
               reflectivity: 0.5,
               envMap: textureCube,
               combine: THREE.MultiplyOperation,
-              side: THREE.DoubleSide
+              side: THREE.DoubleSide,
             })
           );
           scene.add(dae);
@@ -203,7 +198,7 @@
           step = 1;
         var geometry = new THREE.Geometry();
         var gridMat = new THREE.LineBasicMaterial({
-          color: 0xb1b1e5
+          color: 0xb1b1e5,
         });
         for (var i = -size; i <= size; i += step) {
           geometry.vertices.push(new THREE.Vector3(-size, -0.04, i));
@@ -217,7 +212,7 @@
           step = 0.1;
         var geometry2 = new THREE.Geometry();
         var grid2Mat = new THREE.LineBasicMaterial({
-          color: 0x7d7da7
+          color: 0x7d7da7,
         });
         for (var i = -size; i <= size; i += step) {
           geometry2.vertices.push(new THREE.Vector3(-size, -0.04, i));
@@ -234,14 +229,14 @@
           fragmentShader: shader.fragmentShader,
           vertexShader: shader.vertexShader,
           uniforms: shader.uniforms,
-          side: THREE.BackSide
+          side: THREE.BackSide,
         });
         light1 = new THREE.PointLight({
-          color: 0xffffff
+          color: 0xffffff,
         });
         scene.add(light1);
         light2 = new THREE.PointLight({
-          color: 0xffffff
+          color: 0xffffff,
         });
         scene.add(light2);
         hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1);
@@ -250,7 +245,7 @@
         hemiLight.position.set(0, 1, 0);
         scene.add(hemiLight);
         renderer = new THREE.WebGLRenderer({
-          antialias: true
+          antialias: true,
         });
         renderer.setClearColor(0x6a6a8d, 1);
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -331,7 +326,7 @@
           u: userName,
           x: x,
           y: y,
-          z: z
+          z: z,
         };
         socket.emit('draw', dataControls);
         socket.emit('session', sessionId);
